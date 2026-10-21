@@ -22,8 +22,17 @@ const BG_TILE_ALIGN = 0x1000;         // BG12NBA / BG34NBA step
 const BG_MAP_ALIGN = 0x400;           // BGnSC step
 const MAX_BG_TILES = 1024;            // 10-bit tile number in map entries
 
-const STORAGE_KEY = 'vramBudgeter.v1';
-const CONDENSED_KEY = 'vramBudgeter.condensed';
+const STORAGE_KEY = 'vramBudgetter.v1';
+const CONDENSED_KEY = 'vramBudgetter.condensed';
+
+// One-time move of settings saved under the old app name (vramBudgeter.*) to the new keys.
+for (const suffix of ['v1', 'condensed', 'codeFormat']) {
+  try {
+    const old = localStorage.getItem(`vramBudgeter.${suffix}`);
+    if (old !== null && localStorage.getItem(`vramBudgetter.${suffix}`) === null) localStorage.setItem(`vramBudgetter.${suffix}`, old);
+    localStorage.removeItem(`vramBudgeter.${suffix}`);
+  } catch (_) { /* ignore */ }
+}
 
 function defaultState() {
   return {
@@ -88,7 +97,7 @@ function exportState() {
       regions[id][key] = HEX_FIELDS.includes(key) && v != null ? hex(v) : v;
     }
   }
-  return JSON.stringify({ app: 'VRAM Budgeter', version: 1, mode: state.mode, regions }, null, 2);
+  return JSON.stringify({ app: 'VRAM Budgetter', version: 1, mode: state.mode, regions }, null, 2);
 }
 
 function saveState() {
@@ -652,7 +661,7 @@ const CODE_FORMATS = {
     label: 'ca65 (cc65)',
     hint: 'call during forced blank',
     render: ({ equates, regs }, errors) => [
-      `; VRAM Budgeter - PPU init for Mode ${state.mode} (ca65 / cc65)`,
+      `; VRAM Budgetter - PPU init for Mode ${state.mode} (ca65 / cc65)`,
       `; ${LAYOUT_NOTE}`,
       '; Call during forced blank (INIDISP = $80) with DB in bank $00-$3F or $80-$BF.',
       ...errorNote(errors).map(s => `; ${s}`),
@@ -673,7 +682,7 @@ const CODE_FORMATS = {
     label: 'WLA-DX',
     hint: 'put in a code .SECTION · forced blank',
     render: ({ equates, regs }, errors) => [
-      `; VRAM Budgeter - PPU init for Mode ${state.mode} (WLA-DX 65816)`,
+      `; VRAM Budgetter - PPU init for Mode ${state.mode} (WLA-DX 65816)`,
       `; ${LAYOUT_NOTE}`,
       '; Call during forced blank (INIDISP = $80) with DB in bank $00-$3F or $80-$BF.',
       '; Put InitVRAMLayout inside one of your code .SECTIONs.',
@@ -695,7 +704,7 @@ const CODE_FORMATS = {
     render: ({ equates, regs }, errors) => {
       const c = (n, digits = 2) => '0x' + n.toString(16).toUpperCase().padStart(digits, '0');
       return [
-        `// VRAM Budgeter - PPU init for Mode ${state.mode} (PVSnesLib / C)`,
+        `// VRAM Budgetter - PPU init for Mode ${state.mode} (PVSnesLib / C)`,
         `// ${LAYOUT_NOTE}`,
         '// Call during forced blank (setScreenOff()), after consoleInit() and setMode():',
         '// it overrides the BGMODE, map/tile bases and main screen they set.',
@@ -717,7 +726,7 @@ const CODE_FORMATS = {
   },
 };
 
-const FORMAT_KEY = 'vramBudgeter.codeFormat';
+const FORMAT_KEY = 'vramBudgetter.codeFormat';
 
 function codeFormat() {
   const value = document.getElementById('code-format').value;
@@ -849,7 +858,7 @@ async function onPaste(e) {
     if (text == null) return;
   }
   if (!applyBudgetJSON(text)) {
-    alert('The clipboard does not contain a VRAM Budgeter budget (JSON).');
+    alert('The clipboard does not contain a VRAM Budgetter budget (JSON).');
     return;
   }
   flashLabel(btn, 'Loaded!');
@@ -905,7 +914,7 @@ async function onLoadFile(e) {
   input.value = '';  // so picking the same file again still fires change
   if (!file) return;
   if (!applyBudgetJSON(await file.text())) {
-    alert(`"${file.name}" does not contain a VRAM Budgeter budget (JSON).`);
+    alert(`"${file.name}" does not contain a VRAM Budgetter budget (JSON).`);
     return;
   }
   flashLabel(document.getElementById('load'), 'Loaded!');

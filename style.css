@@ -309,8 +309,8 @@ html, body {
   font-stretch: 125%;
   text-transform: uppercase;
   color: #e4000f;
-  /* The wordmark is ~11.5em wide: shrink it so it fits beside the Antihero logo (~300px with gap and italic overhang). */
-  font-size: min(52px, (100cqi - 300px) / 11.6);
+  /* The wordmark is ~12.4em wide: shrink it so it fits beside the Antihero logo (~300px with gap and italic overhang). */
+  font-size: min(52px, (100cqi - 300px) / 12.5);
   line-height: 1;
   letter-spacing: -0.01em;
 }

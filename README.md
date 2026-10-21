@@ -1,4 +1,4 @@
-# VRAM Budgeter
+# VRAM Budgetter
 
 A browser tool for planning how the 64 KB of SNES / Super Famicom VRAM is shared between sprite tiles,
 BG tiles and BG maps. You enter where each block lives and how big it is. The tool draws the whole VRAM
@@ -38,7 +38,7 @@ until you fix it.
 
 ```
 ┌──────────────────────────────────────────────────────────┬──────────────┐
-│ VRAM BUDGETER                                  ANTIHERO  │ ◯ Condensed  │
+│ VRAM BUDGETTER                                 ANTIHERO  │ ◯ Condensed  │
 ├───────────────────────────────┬──────────────────────────┤ $00 $10 … $F0│
 │ MODE                          │ USAGE                    │ $0000 ■■■■■■ │
 │ SPRITES   (SPR, SPR_EX)       │ STATUS                   │ $0100 ■■■■■■ │
@@ -229,7 +229,7 @@ The JSON is meant to be readable and hand-editable. Addresses are written SNES-s
 
 ```json
 {
-  "app": "VRAM Budgeter",
+  "app": "VRAM Budgetter",
   "version": 1,
   "mode": 1,
   "regions": {

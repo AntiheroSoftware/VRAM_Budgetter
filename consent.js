@@ -4,7 +4,14 @@
 // the visitor clicks Accept; the choice is remembered and can be changed from "Cookies".
 
 const GA_ID = 'G-NZHV314CLF';
-const CONSENT_KEY = 'vramBudgeter.consent';  // 'granted' | 'denied'
+const CONSENT_KEY = 'vramBudgetter.consent';  // 'granted' | 'denied'
+
+// One-time move of a choice saved under the old app name (vramBudgeter.consent).
+try {
+  const old = localStorage.getItem('vramBudgeter.consent');
+  if (old !== null && localStorage.getItem(CONSENT_KEY) === null) localStorage.setItem(CONSENT_KEY, old);
+  localStorage.removeItem('vramBudgeter.consent');
+} catch (_) { /* ignore */ }
 
 window.dataLayer = window.dataLayer || [];
 function gtag() { dataLayer.push(arguments); }
@@ -55,7 +62,7 @@ function showBanner() {
     banner.setAttribute('role', 'dialog');
     banner.setAttribute('aria-label', 'Cookie consent');
     banner.innerHTML = `
-      <p>VRAM Budgeter uses Google Analytics cookies to count visits.
+      <p>VRAM Budgetter uses Google Analytics cookies to count visits.
         Nothing is collected unless you accept. Your budgets never leave your browser.</p>
       <div class="consent-buttons">
         <button type="button" data-consent="denied">Decline</button>
