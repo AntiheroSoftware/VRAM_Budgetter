@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VRAM Budgeter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@1,125,900&family=DotGothic16&family=Marcellus&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app">
+  <aside class="panel" id="panel">
+    <header class="panel-head">
+      <div class="brand">
+        <!-- App logo in the spirit of the US SNES wordmark (Univers-style black italic). -->
+        <h1 class="app-logo">VRAM Budgeter</h1>
+        <!-- Antihero Software: stacked outlined ANTI / HERO, each letter drawn over the previous one. -->
+        <div class="ah-logo" role="img" aria-label="Antihero Software">
+          <div class="ah-word" aria-hidden="true"><span>A</span><span>N</span><span>T</span><span>I</span><span>H</span><span>E</span><span>R</span><span>O</span></div>
+          <div class="ah-tag" aria-hidden="true"><span class="ah-bar"></span><span>SOFTWARE</span></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Two columns that scroll independently under the fixed header. -->
+    <div class="panel-body">
+      <div class="config">
+        <div class="budget-actions">
+          <button id="copy" type="button" title="Copy the whole budget to the clipboard as JSON">Copy</button>
+          <button id="paste" type="button" title="Load a budget (JSON) from the clipboard">Paste</button>
+          <button id="save" type="button" title="Save the budget to a .json file">Save</button>
+          <button id="load" type="button" title="Load a budget from a .json file">Load</button>
+          <input type="file" id="load-file" accept=".json,application/json" hidden>
+          <button id="reset" type="button">Reset</button>
+        </div>
+        <h2>Mode <button type="button" class="help" data-help="mode" aria-label="Help: graphics mode">i</button></h2>
+        <div class="card">
+          <div class="mode-row">
+            <select id="mode" aria-label="Graphics mode"></select>
+          </div>
+          <p class="hint">All addresses and sizes are in VRAM words (1 word = 2 bytes). One grid cell = $10 words = 32 bytes.</p>
+        </div>
+
+        <h2>Sprites</h2>
+        <div id="sprites"></div>
+
+        <h2>Backgrounds</h2>
+        <div id="bgs"></div>
+      </div>
+
+      <div class="side">
+        <h2>Usage</h2>
+        <div class="usage" id="usage"></div>
+        <div class="meter" id="usage-meter" role="meter" aria-label="VRAM used" aria-valuemin="0" aria-valuemax="100">
+          <div class="meter-fill" id="usage-fill"></div>
+        </div>
+
+        <h2>Status</h2>
+        <ul id="messages" class="messages"></ul>
+
+        <h2>Budget</h2>
+        <div class="card budget">
+          <table>
+            <thead><tr><th>Region</th><th class="b-num">Size</th><th class="b-num">Tiles (used / max)</th></tr></thead>
+            <tbody id="budget-rows"></tbody>
+          </table>
+        </div>
+
+        <h2>Init code</h2>
+        <div class="card code-card">
+          <div class="code-head">
+            <select id="code-format" aria-label="Output format"></select>
+            <span class="hint" id="code-hint"></span>
+            <button id="copy-code" type="button" title="Copy the init code to the clipboard">Copy</button>
+          </div>
+          <textarea id="init-code" readonly spellcheck="false" rows="30" aria-label="Generated init code"></textarea>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="grid-pane">
+    <div class="grid-toolbar">
+      <label class="switch"><input type="checkbox" id="condensed"> Condensed view</label>
+    </div>
+    <div class="grid-scroll" id="grid-scroll">
+      <div id="grid" class="vram-grid"></div>
+    </div>
+  </section>
+</main>
+<script src="help.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+:root {
+  --bg: #16181d;
+  --panel: #1e2128;
+  --card: #262a33;
+  --line: #343a46;
+  --text: #e6e8ec;
+  --muted: #8b93a3;
+  --free: #2a2e37;
+  --scroll-thumb: #3a404d;
+  --scroll-thumb-hover: #565e6e;
+  --err: #ff4d4d;
+  --warn: #ffb84d;
+  --ok: #5fd38d;
+  --mono: ui-monospace, Consolas, "Courier New", monospace;
+  --pixel: "DotGothic16", var(--mono);  /* PC-98 style pixel font for grid addresses */
+  --glow: 0 0 3px rgba(170, 210, 255, 0.55);
+  --cell: 26px;  /* grid cells are square: width = height; 26px fits "$F0" at 16px */
+}
+
+* { box-sizing: border-box; }
+
+/* Scrollbars: thin, dark track-less thumb that lightens on hover. Standard properties
+   (Chrome/Edge 121+, Firefox) plus ::-webkit-scrollbar for older Chromium. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+*:hover { scrollbar-color: var(--scroll-thumb-hover) transparent; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--scroll-thumb-hover); }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 system-ui, "Segoe UI", sans-serif;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  height: 100vh;
+}
+
+/* ---------- VRAM grid ---------- */
+
+.grid-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+}
+
+.grid-toolbar {
+  padding: 10px 16px 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.grid-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;  /* reserve the scrollbar's width so it never covers the grid */
+  padding: 0 16px 16px;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  appearance: none;
+  position: relative;
+  width: 30px;
+  height: 16px;
+  margin: 0;
+  border-radius: 8px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.15s;
+}
+
+.switch input:checked { background: #4dabf7; }
+.switch input:checked::after { transform: translateX(14px); }
+.switch input:focus-visible { outline: 2px solid #4dabf7; outline-offset: 2px; }
+
+.vram-grid {
+  display: grid;
+  grid-template-columns: 52px repeat(16, var(--cell));
+  width: max-content;
+  gap: 1px;
+  font: 10px var(--mono);
+}
+
+.col-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg);
+  color: var(--muted);
+  font: 16px var(--pixel);
+  text-shadow: var(--glow);
+  text-align: center;
+  padding: 10px 0 4px;
+}
+
+.row-head {
+  color: var(--muted);
+  font: 16px var(--pixel);
+  text-shadow: var(--glow);
+  text-align: right;
+  padding-right: 6px;
+  line-height: var(--cell-h, var(--cell));
+}
+
+.row-head.major { color: #fff; }
+.major { margin-top: 4px; }
+
+.cell {
+  position: relative;
+  height: var(--cell-h, var(--cell));
+  background: var(--free);
+  border-radius: 1px;
+}
+
+/* Condensed: same width as normal; --cell-h is set from JS so all 128 rows fit the pane height. */
+.vram-grid.condensed .major { margin-top: 0; }
+.vram-grid.condensed .col-head { font-size: 12px; }  /* same as the condensed row addresses */
+.vram-grid.condensed .cell { border-radius: 0; }
+.vram-grid.condensed .cell.major { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.vram-grid.condensed .row-head {
+  height: var(--cell-h);
+  line-height: 1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: visible;
+}
+.vram-grid.condensed .row-head:not(.major) { visibility: hidden; }
+
+.cell.conflict { animation: blink 0.7s steps(1) infinite; }
+
+@keyframes blink {
+  50% { background: var(--err); }
+}
+
+/* Region picked with a target button: pulse. */
+.cell.spot { animation: spot 0.8s ease-in-out 2; }
+
+@keyframes spot {
+  50% { filter: brightness(1.9); }
+}
+
+.cell.flash {
+  z-index: 2;
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+/* ---------- Config panel ---------- */
+
+/* Header stays put; the two body columns scroll on their own. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.panel-head {
+  flex: none;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--line);
+  container-type: inline-size;
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* Centre column: ~2x the budget table's natural width, never more than half the panel. */
+  grid-template-columns: minmax(300px, 1fr) min(580px, 50%);
+  gap: 24px;
+  padding: 0 20px;
+}
+
+.config, .side {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 12px;   /* gap between the cards and the column's scrollbar */
+  padding-bottom: 32px;
+}
+
+.config > h2:first-child, .side > h2:first-child { margin-top: 18px; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;   /* Antihero logo drops under the wordmark if the panel is too narrow */
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+/* "SNES" by Westral Fonts (fontified SNES logo): installed copy, or ./fonts/SNES.ttf. */
+@font-face {
+  font-family: "SNES Logo";
+  src: local("SNES"), local("SNES Regular"),
+       url("fonts/SNES.ttf") format("truetype"),
+       url("fonts/SNES.otf") format("opentype");
+}
+
+/* Friz Quadrata Bold: installed copy, or a font file dropped into ./fonts/. */
+@font-face {
+  font-family: "Antihero Friz";
+  src: local("Friz Quadrata Bold"), local("FrizQuadrataBold"), local("Friz Quadrata Std Bold"),
+       local("FrizQuadrataStd-Bold"), local("Friz Quadrata TT Bold"), local("FrizQuadrataTT-Bold"),
+       url("fonts/FrizQuadrataBold.woff2") format("woff2"),
+       url("fonts/FrizQuadrataBold.otf") format("opentype"),
+       url("fonts/FrizQuadrataBold.ttf") format("truetype");
+}
+
+/* Antihero Software logo: ANTIHERO in the SNES logo font, outlined letters (sticker line art
+   inverted for the dark panel), each letter overlapping and covering the previous one. */
+.ah-logo {
+  display: inline-flex;
+  flex-direction: column;
+  flex: none;
+  font-family: "SNES Logo", "Archivo", "Arial Black", sans-serif;
+  font-synthesis: none;
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
+  color: #fff;
+}
+
+.ah-word {
+  display: flex;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.ah-word span {
+  display: inline-block;   /* painted per letter, so its fill hides the previous letter's outline */
+  color: var(--panel);
+  -webkit-text-stroke: 2px #fff;
+}
+
+.ah-word span + span { margin-left: -0.03em; }
+
+.ah-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: -3px;  /* tuck under ANTIHERO: ~half the line's natural gap */
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+/* Three stacked colour lines (splash colours): yellow, orange, red. */
+.ah-bar {
+  flex: 1;
+  height: 11px;
+  background: linear-gradient(
+    to bottom,
+    #ffbe00 0 3px, transparent 3px 4px,
+    #ff6f00 4px 7px, transparent 7px 8px,
+    #ff2100 8px 11px
+  );
+}
+
+.app-logo {
+  margin: 0;
+  white-space: nowrap;
+  /* The SNES font already has the logo's slant and weight; font-synthesis: none stops the
+     browser faking italic/bold on it, while the Archivo fallback still uses its real italic. */
+  font-family: "SNES Logo", "Archivo", "Arial Black", sans-serif;
+  font-synthesis: none;
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  color: #e4000f;
+  /* The wordmark is ~11.5em wide: shrink it so it fits beside the Antihero logo (~300px with gap and italic overhang). */
+  font-size: min(52px, (100cqi - 300px) / 11.6);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+
+h2 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 20px 0 8px;
+}
+
+.usage { font: 12px var(--mono); color: var(--muted); }
+
+.meter {
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 4px;
+  background: var(--free);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 4px;
+  background: var(--ok);
+  transition: width 0.2s, background 0.2s;
+}
+
+.meter-fill.high { background: var(--warn); }
+.meter-fill.full { background: var(--err); }
+
+.mode-row {
+  display: flex;
+  flex-wrap: wrap;   /* buttons drop under the dropdown when the column is narrow */
+  align-items: center;
+  gap: 8px;
+}
+
+.budget-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.mode-row select { flex: 1; min-width: 240px; }
+
+.hint { color: var(--muted); font-size: 11px; margin: 8px 0 0; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.card.hidden { display: none; }
+.card.off .sub, .card.off .info { opacity: 0.35; }
+.card.collapsed .sub, .card.collapsed .info, .card.collapsed .card-head select { display: none; }
+.card.collapsed .card-head { color: var(--muted); }
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.card-head select { width: auto; }
+
+.toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+.sub {
+  display: grid;
+  grid-template-columns: 28px 40px repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: end;
+  margin-top: 8px;
+}
+
+.tag { color: var(--muted); font-size: 11px; padding-bottom: 5px; }
+
+.fld { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fld span { font-size: 10px; color: var(--muted); }
+input[type="text"][readonly] {
+  color: var(--muted);
+  background: transparent;
+  border-style: dashed;
+  cursor: default;
+}
+
+/* INIT CODE: generated ca65 source. */
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.code-head select { width: auto; }
+.code-head .hint { margin: 0 auto 0 0; }
+
+#init-code {
+  display: block;
+  width: 100%;
+  /* Exactly 12 lines visible: 12 × line-height (1.45em) + 16px padding + 2px border
+     + 10px for the horizontal scrollbar that long lines bring up + 1px against rounding. */
+  height: calc(12 * 1.45em + 29px);
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #14161a;
+  color: var(--text);
+  font: 11.5px/1.45 var(--mono);
+  white-space: pre;
+  overflow: auto;
+  resize: vertical;
+  tab-size: 8;
+}
+
+#init-code:focus { outline: none; border-color: #4dabf7; }
+
+/* (i) help buttons and their overlay (help.js). */
+.help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  margin-left: 5px;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font: 700 9px/1 system-ui, "Segoe UI", sans-serif;
+  text-transform: none;
+  letter-spacing: 0;
+  vertical-align: 1px;
+  cursor: help;
+}
+
+.help:hover, .help:focus-visible { color: var(--text); border-color: var(--text); outline: none; }
+.card.collapsed .help[data-help="bg.bpp"] { display: none; }
+
+#help-pop {
+  position: fixed;
+  z-index: 50;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #101216;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  color: var(--text);
+  font: 12px/1.45 system-ui, "Segoe UI", sans-serif;
+}
+
+#help-pop h3 { margin: 0 0 4px; font-size: 12px; color: #fff; }
+#help-pop ul { margin: 6px 0; padding-left: 18px; }
+#help-pop li { margin: 2px 0; }
+#help-pop b { color: #fff; }
+
+/* Target buttons: scroll the grid to a region. */
+.targets { margin-left: auto; display: flex; gap: 4px; }
+.card.collapsed .targets { display: none; }
+
+.target {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  font: 11px system-ui, "Segoe UI", sans-serif;
+  color: var(--muted);
+  background: transparent;
+}
+
+.target:hover { color: var(--text); }
+.target svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.target svg .dot { fill: currentColor; stroke: none; }
+
+input[type="text"], select, button {
+  background: #14161a;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: 12px var(--mono);
+  width: 100%;
+}
+
+button { width: auto; cursor: pointer; font-family: inherit; }
+button:hover { border-color: var(--muted); }
+
+input[type="text"]:focus, select:focus { outline: none; border-color: #4dabf7; }
+select:disabled { opacity: 1; color: var(--muted); cursor: default; appearance: none; text-align: center; }
+input.bad { border-color: var(--err); }
+
+input[type="color"] {
+  width: 28px;
+  height: 25px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.info {
+  margin-top: 8px;
+  font: 11px var(--mono);
+  color: var(--muted);
+  white-space: pre-line;
+}
+
+/* width 0 + min-width 100%: fill the column without making it wider (long messages wrap). */
+.messages { list-style: none; padding: 0; margin: 0; width: 0; min-width: 100%; }
+
+/* BUDGET recap table: its natural width sets the centre column's width. */
+.budget { padding: 6px 12px; }
+.budget table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.budget th + th, .budget td + td { padding-left: 28px; }
+.budget th {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  text-align: left;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.budget td { padding: 4px 0; border-bottom: 1px solid #2e333e; }
+.budget .b-num { text-align: right; font-family: var(--mono); white-space: nowrap; }
+.budget .b-detail { text-align: right; color: var(--muted); font-family: var(--mono); }
+.budget .swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+.budget .b-total td { border-bottom: none; padding-top: 6px; font-weight: 600; }
+
+.messages li {
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background: var(--card);
+  border-left: 3px solid;
+  border-radius: 0 4px 4px 0;
+}
+
+.messages li[data-addr] { cursor: pointer; }
+.messages li[data-addr]:hover { background: #2e333e; }
+.messages li.error { border-color: var(--err); }
+.messages li.warn { border-color: var(--warn); }
+.messages li.ok { border-color: var(--ok); }
+
+/* Not enough room for two columns: usage + status go under the config, one scroll. */
+@media (max-width: 1180px) {
+  .panel-body { display: block; overflow-y: auto; }
+  .config, .side { overflow: visible; }
+  .config { padding-bottom: 0; }
+  .side { max-width: 560px; }
+}
+
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; height: auto; }
+  .panel, .panel-body { overflow: visible; }
+  .grid-pane { order: -1; height: 70vh; border-left: none; border-bottom: 1px solid var(--line); }
+  .grid-scroll { overflow-x: auto; }
+}
