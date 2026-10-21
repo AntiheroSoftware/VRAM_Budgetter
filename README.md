@@ -258,6 +258,13 @@ kept.
    **Budget** for tile headroom.
 6. **Save** the result as a `.json` file next to your project (or **Copy** it).
 
+## Privacy
+
+The hosted page uses Google Analytics to count visits, but only after you click **Accept** on the cookie
+banner. Until then nothing is loaded and no cookie is set. **Decline** is remembered too. To change your
+choice later, click **Cookies** at the top right of the grid. Your budgets are never sent anywhere: they stay
+in your browser (and in the files or clipboard text you export).
+
 ## Files
 
 | File | Contents |
@@ -266,6 +273,7 @@ kept.
 | `style.css` | Theme and layout. Colours and the grid cell size (`--cell`) are variables at the top |
 | `app.js` | State, validation, grid rendering, budget, copy/paste |
 | `help.js` | Text of the ⓘ help overlays. Edit it to reword any help |
+| `consent.js` | Google Analytics, loaded only after the visitor accepts the cookie banner |
 | `fonts/` | Optional local font files (`SNES.ttf`) |
 | `VRAM_Budgeter.md` | The original specification |
 
